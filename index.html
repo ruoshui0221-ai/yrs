@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>逃荒模拟器·崇祯十三年</title>
+<style>
+    /* ================= 样式表 (无变化) ================= */
+    * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+    body { background: #3D342F; font-family: "SimSun", "宋体", serif; color: #2A211D; line-height: 1.6; padding: 10px; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; background: #D4C4A0; border: 3px double #8B7355; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); position: relative; min-height: 95vh; display: flex; flex-direction: column; }
+    .container::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.02'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
+    
+    .header { background: #8B7355; color: #F5E7C9; padding: 12px; text-align: center; border-bottom: 2px solid #5C4A3A; position: relative; z-index: 1; }
+    .date-info { font-size: 14px; margin-bottom: 5px; }
+    .main-title { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
+    
+    .section { margin: 12px; padding: 10px; background: #E8D9B5; border: 1px solid #8B7355; border-radius: 4px; position: relative; z-index: 1; transition: all 0.3s; }
+    .section-title { background: #5C4A3A; color: #F5E7C9; padding: 6px 10px; font-size: 14px; font-weight: bold; margin: -10px -10px 10px -10px; border-bottom: 1px solid #8B7355; }
+    
+    .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; }
+    .status-item { display: flex; justify-content: space-between; align-items: center; padding: 4px; background: #F5E7C9; border: 1px solid #8B7355; }
+    .progress-bar { width: 60px; height: 8px; background: #8B7355; border: 1px solid #5C4A3A; display: inline-block; position: relative; }
+    .progress-fill { height: 100%; background: #3D342F; transition: width 0.5s ease-in-out; }
+    
+    .asset-line { font-size: 13px; margin: 4px 0; padding: 4px; background: #F5E7C9; border-left: 3px solid #8B7355; display: flex; justify-content: space-between; }
+    
+    .event-box { background: #F5E7C9; border: 1px solid #8B7355; padding: 10px; margin: 8px 0; font-size: 15px; min-height: 120px; white-space: pre-wrap; opacity: 1; transition: opacity 0.3s ease; }
+    .event-box.fade-out { opacity: 0; transform: translateY(-5px); }
+    .event-box.fade-in { opacity: 1; transform: translateY(0); }
+    
+    .choice-buttons { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+    .choice-btn { background: #8B7355; color: #F5E7C9; border: 1px solid #5C4A3A; padding: 12px 12px; font-size: 14px; cursor: pointer; text-align: left; transition: all 0.2s; font-family: inherit; position: relative; overflow: hidden; font-weight: bold; }
+    .choice-btn:active { background: #5C4A3A; transform: scale(0.98); }
+    .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+    .log-entry { font-size: 12px; padding: 6px; margin: 4px 0; background: #EDE5C7; border-bottom: 1px dotted #8B7355; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from{opacity:0; transform:translateX(-10px)} to{opacity:1; transform:translateX(0)} }
+    .log-time { color: #8B4513; font-weight: bold; margin-right: 5px; }
+    
+    .input-area { margin: 12px; padding: 10px; background: #8B7355; border: 1px solid #5C4A3A; position: relative; z-index: 2; margin-top: auto; }
+    .command-input { width: 100%; padding: 10px; border: 1px solid #5C4A3A; background: #F5E7C9; font-family: inherit; font-size: 14px; }
+    
+    .weather-info { text-align: center; font-size: 12px; color: #5C4A3A; padding: 5px; background: #F5E7C9; border-bottom: 1px solid #8B7355; position: relative; z-index: 1; }
+
+    .txt-dialogue { color: #8B0000; font-weight: bold; font-family: "KaiTi", "楷体", serif; } 
+    .txt-bold { color: #B8860B; font-weight: bold; border-bottom: 1px dotted #8B4513; }
+    
+    .float-anim { position: fixed; font-weight: bold; font-size: 18px; pointer-events: none; animation: floatUp 2s forwards; z-index: 100; text-shadow: 1px 1px 0 #fff; }
+    @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+    .modal-box { background: #E8D9B5; border: 3px double #8B7355; padding: 25px; width: 85%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; }
+    .modal-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #5C4A3A; border-bottom: 1px solid #8B7355; padding-bottom: 10px; }
+    .form-group { margin-bottom: 15px; text-align: left; }
+    .form-group label { display: block; font-size: 12px; color: #5C4A3A; margin-bottom: 5px; font-weight: bold; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #8B7355; background: #F5E7C9; font-family: inherit; font-size: 14px; }
+    .btn-start { width: 100%; padding: 12px; background: #8B4513; color: #F5E7C9; border: 1px solid #5C2F0D; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; transition: 0.2s; }
+    .btn-start:hover { background: #5C2F0D; transform: scale(1.02); }
+
+    .loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(212, 196, 160, 0.8); z-index: 50; display: none; align-items: center; justify-content: center; color: #5C4A3A; font-weight: bold; font-size: 16px; flex-direction: column; gap: 10px; }
+    .spinner { width: 20px; height: 20px; border: 3px solid #8B7355; border-top: 3px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+    <div id="setup-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">📜 逃荒卷宗·启</div>
+            <div class="form-group">
+                <label>API 地址 (SiliconFlow/DeepSeek)</label>
+                <input type="text" id="api-host" value="https://api.siliconflow.cn/v1">
+            </div>
+            <div class="form-group">
+                <label>API Key (必填)</label>
+                <input type="password" id="api-key" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+                <label>模型名称 (Model Name)</label>
+                <input type="text" id="api-model" value="deepseek-ai/DeepSeek-V3">
+            </div>
+            <div class="form-group">
+                <label>主角姓名</label>
+                <input type="text" id="player-name" value="陈二丫">
+            </div>
+            <button class="btn-start" onclick="Game.init()">按手印 (开始游戏)</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="date-info" id="date-display">崇祯十三年四月初九</div>
+            <div class="main-title">逃荒模拟器</div>
+        </div>
+        
+        <div class="weather-info" id="weather-display">
+            晴转多云 · 气温18℃ · 适合赶路
+        </div>
+
+        <div class="section">
+            <div class="section-title">【主控状态】</div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span❤️ 体质</span>
+                    <span style="font-weight:bold" id="txt-hp">35</span>
+                    <span class="progress-bar"><span class="progress-fill" id="bar-hp" style="width: 35%"></span></span>
+                </div>
+                <div class="status-item">
+                    <span>🧠 智力</span>
+                    <span style="font-weight:bold" id="txt-int">62</span>
+                    <span class="progress-bar"><span class="progress-fill" id="bar-int" style="width: 62%"></span></span>
+                </div>
+                <div class="status-item">
+                    <span>😨 压力</span>
+                    <span style="font-weight:bold" id="txt-stress">70</span>
+                    <span class="progress-bar"><span class="progress-fill" id="bar-stress" style="width: 70%; background:#8B0000;"></span></span>
+                </div>
+                <div class="status-item">
+                    <span>👁️ 声望</span>
+                    <span style="font-weight:bold" id="txt-rep">-10</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">【行囊资产】</div>
+            <div class="asset-line">
+                <span>💰 碎银</span> <span style="font-weight:bold" id="val-money">0.30 两</span>
+            </div>
+            <div class="asset-line">
+                <span>🍚 糙米</span> <span style="font-weight:bold; color:#8B4513;" id="val-grain">21.5 斤</span>
+            </div>
+            <div class="asset-line">
+                <span>⚠️ 状态</span> <span id="val-status">暂无异常</span>
+            </div>
+        </div>
+
+        <div class="section" style="flex:1; display:flex; flex-direction:column;">
+            <div class="section-title">【当前遭遇】</div>
+            <div id="loading-mask" class="loading-overlay">
+                <div class="spinner"></div>
+                <div>命运推演中...</div>
+            </div>
+            <div class="event-box" id="main-narrative">正在初始化世界...</div>
+            <div class="choice-buttons" id="choices-area"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">【族人动态】</div>
+            <div id="log-container" style="max-height: 150px; overflow-y: auto;">
+                <div class="log-entry" style="text-align:center;color:#888;">暂无记录</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" class="command-input" 
+                   placeholder="输入自定义行动 (如：去河边找水)..." 
+                   onkeypress="if(event.key==='Enter') Game.sendInput(this.value)">
+        </div>
+    </div>
+
+    <script>
+        const Config = {
+            sysPrompt: `你是一个基于文本的RPG游戏引擎，背景为明末崇祯十三年逃荒。
+            
+            【数值平衡铁律】
+            1. **货币价值**：1两银子 = 1000文。乞讨/拾荒通常只能获得 0.01-0.05两。
+            2. **粮食价值**：1斤米是保命的。不要动不动就奖励 10斤、50斤。挖野菜通常获得 0.5-2.0斤。
+            3. **生命消耗**：每天自然流逝会自动发生，如果玩家选择"下一日"，**必须**在stats中扣除全家(4口人)口粮约 2.0-3.0斤。
+            4. **数值波动**：非致死事件，HP变化幅度控制在 1-5 之间。压力变化 2-10 之间。
+
+            【输出格式 (JSON Only)】
+            {
+                "narrative": "主剧情文本...不要使用HTML标签，对话请务必用双引号“...”包裹。",
+                "logs": ["辰时: ...", "午时: ..."],
+                "stats": {
+                    "hp": 0,    // 变更值 (+/-)
+                    "stress": 0,// 变更值 (+/-)
+                    "grain": 0, // 变更值 (+/- 0.1精度)
+                    "money": 0, // 变更值 (+/- 0.01精度)
+                    "date_advance": 0 // 1 = 推进一天
+                },
+                "options": [
+                    { "text": "A. [行为] 描述", "cmd": "指令" }
+                ],
+                "weather": "晴 · 18℃"
+            }
+
+            【当前状态】
+            玩家:[NAME],14岁。HP:[HP],粮:[GRAIN]斤,钱:[MONEY]两。
+            全家: 父(病), 母(弱), 弟(幼)。
+            `,
+            api: { host: '', key: '', model: '' }
+        };
+
+        const State = {
+            meta: { 
+                name: '陈二丫', hp: 35, stress: 70, grain: 21.5, money: 0.30, int: 62,
+                dateStr: '崇祯十三年四月初九'
+            },
+            history: []
+        };
+
+        // 页面加载时自动回填保存的配置
+        window.onload = function() {
+            if(localStorage.getItem('th_api_host')) document.getElementById('api-host').value = localStorage.getItem('th_api_host');
+            if(localStorage.getItem('th_api_key')) document.getElementById('api-key').value = localStorage.getItem('th_api_key');
+            if(localStorage.getItem('th_api_model')) document.getElementById('api-model').value = localStorage.getItem('th_api_model');
+            if(localStorage.getItem('th_player_name')) document.getElementById('player-name').value = localStorage.getItem('th_player_name');
+        };
+
+        const Game = {
+            init() {
+                const key = document.getElementById('api-key').value;
+                if(!key) return alert("客官，Key不能为空");
+                
+                // 保存配置到本地
+                localStorage.setItem('th_api_host', document.getElementById('api-host').value);
+                localStorage.setItem('th_api_key', key);
+                localStorage.setItem('th_api_model', document.getElementById('api-model').value);
+                localStorage.setItem('th_player_name', document.getElementById('player-name').value);
+
+                Config.api.key = key;
+                Config.api.host = document.getElementById('api-host').value;
+                Config.api.model = document.getElementById('api-model').value || 'deepseek-ai/DeepSeek-V3';
+                State.meta.name = document.getElementById('player-name').value;
+
+                document.getElementById('setup-modal').style.display = 'none';
+
+                let prompt = Config.sysPrompt
+                    .replace(/\[NAME\]/g, State.meta.name)
+                    .replace('[HP]', State.meta.hp)
+                    .replace('[GRAIN]', State.meta.grain)
+                    .replace('[MONEY]', State.meta.money);
+
+                State.history = [
+                    { role: 'system', content: prompt },
+                    { role: 'user', content: '初始化游戏。描述清晨营地。' }
+                ];
+
+                this.triggerAI();
+            },
+
+            async triggerAI() {
+                this.setLoading(true);
+                
+                const statusInject = `\n(System: Current Grain=${State.meta.grain.toFixed(1)}, Money=${State.meta.money.toFixed(2)}, HP=${State.meta.hp}. Family=4 people. If advancing day, deduct ~2.5 grain. REMINDER: Respond in strict JSON.)`;
+                
+                // 【核心修复1：上下文滑动窗口】
+                // 防止 playing 太久后 token 爆炸。保留 System(0) 和最近 16 条对话
+                let context = [...State.history];
+                if (context.length > 18) {
+                    context = [context[0], ...context.slice(-16)];
+                }
+
+                // 深度拷贝最后一条并注入状态，防止污染
+                const lastMsg = { ...context[context.length - 1] };
+                lastMsg.content += statusInject;
+                context[context.length - 1] = lastMsg;
+
+                try {
+                    const res = await fetch(`${Config.api.host}/chat/completions`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Config.api.key}` },
+                        body: JSON.stringify({
+                            model: Config.api.model,
+                            messages: context, // 发送剪裁后的上下文
+                            max_tokens: 1500,
+                            temperature: 0.7,
+                            response_format: { type: "json_object" }
+                        })
+                    });
+
+                    const data = await res.json();
+                    if(data.error) throw new Error(data.error.message);
+                    const content = data.choices[0].message.content;
+                    
+                    State.history.push({ role: 'assistant', content: content });
+                    this.processResponse(content);
+
+                } catch (e) {
+                    // 出错时如果不回退，用户会被卡死
+                    if(State.history.length > 2 && State.history[State.history.length-1].role === 'user') {
+                       // 允许重试
+                    }
+                    document.getElementById('main-narrative').innerHTML = `<span style="color:red">天机混淆...请重试 (${e.message})</span><br><br><small>建议：缩短输入或检查API Key。</small>`;
+                } finally {
+                    this.setLoading(false);
+                }
+            },
+
+            processResponse(jsonStr) {
+                // 【核心修复2：智能提取 JSON】
+                // 解决 DeepSeek-R1 等模型可能在 JSON 前后输出思考过程的问题
+                let cleanStr = jsonStr.trim();
+                // 寻找第一个 '{' 和最后一个 '}'
+                const firstBrace = cleanStr.indexOf('{');
+                const lastBrace = cleanStr.lastIndexOf('}');
+                
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    cleanStr = cleanStr.substring(firstBrace, lastBrace + 1);
+                }
+
+                try {
+                    const data = JSON.parse(cleanStr);
+                    if(data.stats) this.updateStats(data.stats);
+                    if(data.narrative) this.updateNarrative(data.narrative);
+                    if(data.logs) this.renderLogs(data.logs);
+                    if(data.options) this.renderChoices(data.options);
+                    if(data.weather) document.getElementById('weather-display').innerText = data.weather;
+                } catch (e) {
+                    console.error("Parse Error", e);
+                    console.log("Raw Output:", jsonStr); // 方便调试
+                    document.getElementById('main-narrative').innerHTML += `<br><span style="color:red;font-size:12px;">(数据解析微瑕，但命运继续流转)</span>`;
+                }
+            },
+
+            updateNarrative(rawText) {
+                const box = document.getElementById('main-narrative');
+                let formattedHTML = rawText
+                    .replace(/“([^”]+)”/g, '<span class="txt-dialogue">“$1”</span>')
+                    .replace(/"([^"]+)"/g, '<span class="txt-dialogue">“$1”</span>')
+                    .replace(/\*\*(.*?)\*\*/g, '<span class="txt-bold">$1</span>');
+
+                box.classList.add('fade-out');
+                setTimeout(() => {
+                    box.innerHTML = formattedHTML;
+                    box.classList.remove('fade-out');
+                    box.classList.add('fade-in');
+                    box.scrollTop = 0;
+                }, 300);
+            },
+
+            updateStats(diff) {
+                const anim = (id, val, suffix) => {
+                    if(!val || val == 0) return;
+                    const displayVal = Number.isInteger(val) ? val : val.toFixed(2);
+                    const el = document.getElementById(id);
+                    if(!el) return;
+                    const float = document.createElement('div');
+                    float.className = 'float-anim';
+                    float.innerText = (val > 0 ? '+' : '') + displayVal + suffix;
+                    float.style.color = val > 0 ? '#558B2F' : '#8B0000';
+                    const rect = el.getBoundingClientRect();
+                    float.style.left = rect.left + 'px';
+                    float.style.top = rect.top + 'px';
+                    document.body.appendChild(float);
+                    setTimeout(() => float.remove(), 2000);
+                };
+
+                if(diff.hp) { State.meta.hp = Math.max(0, Math.min(100, State.meta.hp + diff.hp)); anim('txt-hp', diff.hp, ''); }
+                if(diff.grain) { State.meta.grain = parseFloat((State.meta.grain + diff.grain).toFixed(1)); anim('val-grain', diff.grain, '斤'); }
+                if(diff.money) { State.meta.money = parseFloat((State.meta.money + diff.money).toFixed(2)); anim('val-money', diff.money, '两'); }
+                if(diff.stress) { State.meta.stress = Math.max(0, Math.min(100, State.meta.stress + diff.stress)); anim('txt-stress', diff.stress, ''); }
+
+                document.getElementById('txt-hp').innerText = State.meta.hp;
+                document.getElementById('bar-hp').style.width = State.meta.hp + '%';
+                document.getElementById('txt-stress').innerText = State.meta.stress;
+                document.getElementById('bar-stress').style.width = State.meta.stress + '%';
+                document.getElementById('val-grain').innerText = State.meta.grain.toFixed(1) + ' 斤';
+                document.getElementById('val-money').innerText = State.meta.money.toFixed(2) + ' 两';
+            },
+
+            renderLogs(logs) {
+                const container = document.getElementById('log-container');
+                logs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    div.innerHTML = log.replace(/^(.+?):/, '<span class="log-time">$1</span>');
+                    container.prepend(div);
+                });
+            },
+
+            renderChoices(options) {
+                const area = document.getElementById('choices-area');
+                area.innerHTML = '';
+                options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = opt.text.replace(/\[(.*?)\]/g, '<b>[$1]</b>');
+                    btn.onclick = () => this.sendInput(opt.cmd || opt.text);
+                    area.appendChild(btn);
+                });
+            },
+
+            sendInput(val) {
+                if(!val.trim()) return;
+                document.getElementById('user-input').value = '';
+                State.history.push({ role: 'user', content: val });
+                this.triggerAI();
+            },
+
+            setLoading(isLoading) {
+                const mask = document.getElementById('loading-mask');
+                const btns = document.querySelectorAll('.choice-btn');
+                const input = document.getElementById('user-input');
+                if(isLoading) {
+                    mask.style.display = 'flex';
+                    btns.forEach(b => b.disabled = true);
+                    input.disabled = true;
+                } else {
+                    mask.style.display = 'none';
+                    btns.forEach(b => b.disabled = false);
+                    input.disabled = false;
+                    input.focus();
+                }
+            }
+        };
+    </script>
+</body>
+</html>
